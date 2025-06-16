@@ -43,7 +43,14 @@ class System:
         self.up_count = electrons.count("u")
         self.down_count = electrons.count("d")
         self.stencil = stencil
+        self.set_potentials()
         self.check()
+
+    def set_potentials(self):
+        if callable(self.v_ext):
+            self.v_ext = self.v_ext(self.x)
+        if callable(self.v_int):
+            self.v_int = self.v_int(self.x)
 
     def check(self):
         r"""Performs checks on system properties. Raises AssertionError if any check fails."""
