@@ -13,7 +13,7 @@ import scipy.sparse.linalg as spsla
 import iDEA.system
 import iDEA.state
 import iDEA.methods.non_interacting
-
+import iDEA.utilities
 
 if os.environ.get("iDEA_GPU") == "True":
     import cupy as cnp
@@ -24,7 +24,7 @@ if os.environ.get("iDEA_GPU") == "True":
 name = "interacting"
 
 
-def kinetic_energy_operator(s: iDEA.system.System) -> sps.dia_matrix:
+def kinetic_energy_operator(s: iDEA.system.System,tracker=False) -> sps.dia_matrix:
     r"""
     Compute many-particle kinetic energy operator as a matrix.
 
@@ -37,6 +37,9 @@ def kinetic_energy_operator(s: iDEA.system.System) -> sps.dia_matrix:
     | Returns:
     |     K: sps.dia_matrix, Kintetic energy operator.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.interacting.kinetic_energy_operator")
+    if tracker:
+        print("[in methods.interacting.kinetic_energy_operator]")
     k = iDEA.methods.non_interacting.kinetic_energy_operator(s)
     k = sps.dia_matrix(k)
     I = sps.identity(s.x.shape[0], format="dia")
@@ -53,10 +56,11 @@ def kinetic_energy_operator(s: iDEA.system.System) -> sps.dia_matrix:
     K = sps.dia_matrix((s.x.shape[0] ** s.count,) * 2, dtype=float)
     for term in terms:
         K += term
+    iDEA.utilities.write_log("[EXIT]     methods.interacting.kinetic_energy_operator")
     return K
 
 
-def external_potential_operator(s: iDEA.system.System) -> sps.dia_matrix:
+def external_potential_operator(s: iDEA.system.System,tracker=False) -> sps.dia_matrix:
     r"""
     Compute many-particle external potential energy operator as a matrix.
 
@@ -66,6 +70,9 @@ def external_potential_operator(s: iDEA.system.System) -> sps.dia_matrix:
     | Returns:
     |     Vext: sps.dia_matrix, External potential operator.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.interacting.external_potential_operator")
+    if tracker:
+        print("[in methods.interacting.external_potential_operator]")
     vext = iDEA.methods.non_interacting.external_potential_operator(s)
     vext = sps.dia_matrix(vext)
     I = sps.identity(s.x.shape[0], format="dia")
@@ -82,10 +89,11 @@ def external_potential_operator(s: iDEA.system.System) -> sps.dia_matrix:
     Vext = sps.dia_matrix((s.x.shape[0] ** s.count,) * 2, dtype=float)
     for term in terms:
         Vext += term
+    iDEA.utilities.write_log("[EXIT]     methods.interacting.external_potential_operator")
     return Vext
 
 
-def hamiltonian(s: iDEA.system.System) -> sps.dia_matrix:
+def hamiltonian(s: iDEA.system.System,tracker=False) -> sps.dia_matrix:
     r"""
     Compute the many-body Hamiltonian.
 
@@ -95,8 +103,12 @@ def hamiltonian(s: iDEA.system.System) -> sps.dia_matrix:
     | Returns:
     |     H: sps.dia_matrix, Hamiltonian.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.interacting.hamiltonian")
+    if tracker:
+        print("[in methods.interacting.hamiltonian]")
     # Construct the non-interacting part of the many-body Hamiltonian
-    h = iDEA.methods.non_interacting.hamiltonian(s)[0]
+    h = iDEA.methods.non_interacting.hamiltonian(s,tracker=tracker)[0]
+    print(h)
     h = sps.dia_matrix(h)
     I = sps.identity(s.x.shape[0], format="dia")
     partial_operators = lambda A, B, k, n: (
@@ -108,9 +120,11 @@ def hamiltonian(s: iDEA.system.System) -> sps.dia_matrix:
     generate_terms = lambda f, A, B, n: (
         fold_partial_operators(f, partial_operators(A, B, k, n)) for k in range(n)
     )
+    print(s.count)
     terms = generate_terms(sps.kron, h, I, s.count)
     H0 = sps.dia_matrix((s.x.shape[0] ** s.count,) * 2, dtype=float)
     for term in terms:
+        print(term)
         H0 += term
 
     # Add the interaction part of the many-body Hamiltonian
@@ -131,11 +145,11 @@ def hamiltonian(s: iDEA.system.System) -> sps.dia_matrix:
 
     # Construct the total many-body Hamiltonian
     H = H0 + U
-
+    iDEA.utilities.write_log("[EXIT]     methods.interacting.hamiltonian")
     return H
 
 
-def total_energy(s: iDEA.system.System, state: iDEA.state.ManyBodyState) -> float:
+def total_energy(s: iDEA.system.System, state: iDEA.state.ManyBodyState,tracker=False) -> float:
     r"""
     Compute the total energy of an interacting state.
 
@@ -146,10 +160,14 @@ def total_energy(s: iDEA.system.System, state: iDEA.state.ManyBodyState) -> floa
     | Returns:
     |     E: float, Total energy.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.interacting.total_energy")
+    if tracker:
+        print("[in methods.interacting.total_energy]")
+    iDEA.utilities.write_log("[EXIT]     methods.interacting.total_energy")
     return state.energy
 
 
-def _permutation_parity(p):
+def _permutation_parity(p,tracker=False):
     r"""
     Compute the permulation paritiy of a given permutation.
 
@@ -159,6 +177,9 @@ def _permutation_parity(p):
     | Returns:
     |     parity: float, Permutation parity.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.interacting._permutation_parity")
+    if tracker:
+        print("[in methods.interacting._permutation_parity]")
     p = list(p)
     parity = 1
     for i in range(0, len(p) - 1):
@@ -166,10 +187,11 @@ def _permutation_parity(p):
             parity *= -1
             mn = min(range(i, len(p)), key=p.__getitem__)
             p[i], p[mn] = p[mn], p[i]
+    iDEA.utilities.write_log("[EXIT]     methods.interacting._permutation_parity")
     return parity
 
 
-def antisymmetrize(s, spaces, spins, energies):
+def antisymmetrize(s, spaces, spins, energies,tracker=False):
     r"""
     Antisymmetrize the solution to the Schrodinger equation.
 
@@ -186,6 +208,9 @@ def antisymmetrize(s, spaces, spins, energies):
     |     energies: np.ndarray, Energies.
 
     """
+    iDEA.utilities.write_log("[ENTER]    methods.interacting.antisymmetrize")
+    if tracker:
+        print("[in methods.interacting.antisymmetrize]")
     # Perform antisymmetrization.
     l = string.ascii_lowercase[: s.count]
     L = string.ascii_uppercase[: s.count]
@@ -204,7 +229,7 @@ def antisymmetrize(s, spaces, spins, energies):
     fulls = np.zeros_like(fulls)
     for p in perms:
         indices = list(itertools.chain(*[L[e] for e in p]))
-        fulls += _permutation_parity(p) * np.moveaxis(
+        fulls += _permutation_parity(p,tracker) * np.moveaxis(
             fulls_copy, list(range(s.count * 2)), indices
         )
 
@@ -247,11 +272,11 @@ def antisymmetrize(s, spaces, spins, energies):
     spaces = spaces[..., : fulls.shape[-1]]
     spins = spins[..., : fulls.shape[-1]]
     energies = np.array(allowed_energies)
-
+    iDEA.utilities.write_log("[EXIT]     methods.interacting.antisymmetrize")
     return fulls, spaces, spins, energies
 
 
-def _estimate_level(s: iDEA.system.System, k: int) -> int:
+def _estimate_level(s: iDEA.system.System, k: int,tracker=False) -> int:
     r"""
     Estimate the solution to the Schrodinger equation needed to eachive given antisymetric energy state.
 
@@ -262,10 +287,14 @@ def _estimate_level(s: iDEA.system.System, k: int) -> int:
     | Returns:
     |     level: int, Extimate of level of excitement.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.interacting._estimate_level")
+    if tracker:
+        print("[in methods.interacting._estimate_level]")
+    iDEA.utilities.write_log("[EXIT]     methods.interacting._estimate_level")
     return (abs(s.up_count - s.down_count) + 1) ** 2 * s.count * (k + 1)
 
 
-def _solve_on_gpu(H: np.ndarray, k: int) -> tuple:
+def _solve_on_gpu(H: np.ndarray, k: int,tracker=False) -> tuple:
     r"""
     Solves the eigenproblem on the GPU.
 
@@ -276,6 +305,9 @@ def _solve_on_gpu(H: np.ndarray, k: int) -> tuple:
     | Returns:
     |     eigenvalues_gpu, eigenstates_gpu: tuple, Solved eigenvalues and eigenstates.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.interacting._solve_on_gpu")
+    if tracker:
+        print("[in methods.interacting._solve_on_gpu]")
     sigma = 0
     which = "LA"
     H_gpu_shifted = csps.csr_matrix(H - sigma * csps.csr_matrix(sps.eye(H.shape[0])))
@@ -289,11 +321,12 @@ def _solve_on_gpu(H: np.ndarray, k: int) -> tuple:
     eigenstates_gpu = cnp.transpose(eigenstates_gpu)
     eigenvalues_gpu = eigenvalues_gpu[idx]
     eigenstates_gpu = cnp.transpose(eigenstates_gpu[idx])
+    iDEA.utilities.write_log("[EXIT]     methods.interacting._solve_on_gpu")
     return eigenvalues_gpu, eigenstates_gpu
 
 
 def solve(
-    s: iDEA.system.System, H: np.ndarray = None, k: int = 0, level=None
+    s: iDEA.system.System, H: np.ndarray = None, k: int = 0, level=None,tracker=False
 ) -> iDEA.state.ManyBodyState:
     r"""
     Solves the interacting Schrodinger equation of the given system.
@@ -307,16 +340,19 @@ def solve(
     | Returns:
     |     state: iDEA.state.ManyBodyState, Solved state.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.interacting.solve")
+    if tracker:
+        print("[in methods.interacting.solve]")
     # Construct the many-body state.
     state = iDEA.state.ManyBodyState()
 
     # Construct the Hamiltonian.
     if H is None:
-        H = hamiltonian(s)
+        H = hamiltonian(s,tracker)
 
     # Estimate the level of excitation.
     if level is None:
-        level = _estimate_level(s, k)
+        level = _estimate_level(s, k,tracker)
 
     # Solve the many-body Schrodinger equation.
     print("iDEA.methods.interacting.solve: solving eigenproblem...")
@@ -348,14 +384,14 @@ def solve(
         spins[..., i] = spin
 
     # Antisymmetrize.
-    fulls, spaces, spins, energies = antisymmetrize(s, spaces, spins, energies)
+    fulls, spaces, spins, energies = antisymmetrize(s, spaces, spins, energies,tracker)
 
     # Populate the state.
     state.space = spaces[..., k]
     state.spin = spins[..., k]
     state.full = fulls[..., k]
     state.energy = energies[k]
-
+    iDEA.utilities.write_log("[EXIT]     methods.interacting.solve")
     return state
 
 
@@ -367,6 +403,7 @@ def propagate_step(
     j: int,
     dt: float,
     objs: tuple,
+    tracker=False
 ) -> iDEA.state.ManyBodyEvolution:
     r"""
     Propagate a many body state forward in time, one time-step, due to a local pertubation.
@@ -383,6 +420,9 @@ def propagate_step(
     | Returns:
     |     evolution: iDEA.state.ManyBodyEvolution, time-dependent evolution one time-step evolved.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.interacting.propagate_step")
+    if tracker:
+        print("[in methods.interacting.propagate_step]")
     # Construct the pertubation potential.
     vptrb = sps.dia_matrix(np.diag(v_ptrb[j, :]))
     terms = objs[1](sps.kron, vptrb, objs[0], s.count)
@@ -397,7 +437,7 @@ def propagate_step(
     wavefunction = evolution.td_space[j - 1, ...].reshape((s.x.shape[0] ** s.count))
     wavefunction = spsla.expm_multiply(-1.0j * dt * Hp, wavefunction)
     evolution.td_space[j, ...] = wavefunction.reshape((s.x.shape[0],) * s.count)
-
+    iDEA.utilities.write_log("[EXIT]     methods.interacting.propagate_step")
     return evolution
 
 
@@ -407,6 +447,7 @@ def propagate(
     v_ptrb: np.ndarray,
     t: np.ndarray,
     H: sps.dia_matrix = None,
+    tracker=False
 ) -> iDEA.state.ManyBodyEvolution:
     r"""
     Propagate a many body state forward in time due to a local pertubation.
@@ -421,6 +462,9 @@ def propagate(
     | Returns:
     |     evolution: iDEA.state.ManyBodyEvolution, Solved time-dependent evolution.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.interacting.propagate")
+    if tracker:
+        print("[in methods.interacting.propagate]")
     # Construct the unperturbed Hamiltonian.
     if H is None:
         H = hamiltonian(s)
@@ -456,5 +500,5 @@ def propagate(
     # Populate the many-body time-dependent evolution.
     evolution.v_ptrb = v_ptrb
     evolution.t = t
-
+    iDEA.utilities.write_log("[EXIT]     methods.interacting.propagate")
     return evolution

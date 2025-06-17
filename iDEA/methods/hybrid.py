@@ -9,6 +9,7 @@ import iDEA.observables
 import iDEA.methods.non_interacting
 import iDEA.methods.hartree
 import iDEA.methods.hartree_fock
+import iDEA.utilities
 
 
 name = "hybrid"
@@ -50,6 +51,7 @@ def hamiltonian(
     | Returns:
     |     H: np.ndarray, Hamiltonian, up Hamiltonian, down Hamiltonian.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.hybrid.hamiltonian")
     alpha = kwargs["alpha"]
     if K is None:
         K = kinetic_energy_operator(s)
@@ -63,6 +65,7 @@ def hamiltonian(
     H = K + Vext + Vh + alpha * Vx + (1.0 - alpha) * Vxc
     up_H = K + Vext + Vh + alpha * up_Vx + (1.0 - alpha) * Vxc
     down_H = K + Vext + Vh + alpha * down_Vx + (1.0 - alpha) * Vxc
+    iDEA.utilities.write_log("[EXIT]     methods.hybrid.hamiltonian")
     return H, up_H, down_H
 
 
@@ -80,9 +83,11 @@ def total_energy(
     | Returns:
     |     E: float, Total energy.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.hybrid.total_energy")
     E_hf = iDEA.methods.hartree_fock.total_energy(s, state)
     E_lda = iDEA.methods.lda.total_energy(s, state)
     E = alpha * E_hf + (1.0 - alpha) * E_lda
+    iDEA.utilities.write_log("[EXIT]     methods.hybrid.total_energy")
     return E
 
 
@@ -112,9 +117,12 @@ def solve(
     | Returns:
     |     state: iDEA.state.SingleBodyState, Solved state.
     """
-    return iDEA.methods.non_interacting.solve(
+    iDEA.utilities.write_log("[ENTER]    methods.hybrid.solve")
+    state = iDEA.methods.non_interacting.solve(
         s, hamiltonian, k, restricted, mixing, tol, initial, name, silent, alpha=alpha
     )
+    iDEA.utilities.write_log("[EXIT]     methods.hybrid.solve")
+    return state
 
 
 def propagate(
@@ -141,6 +149,9 @@ def propagate(
     | Returns:
     |     evolution: iDEA.state.SingleBodyEvolution, Solved time-dependent evolution.
     """
-    return iDEA.methods.non_interacting.propagate(
+    iDEA.utilities.write_log("[ENTER]    methods.hybrid.propagate")
+    evolution = iDEA.methods.non_interacting.propagate(
         s, state, v_ptrb, t, hamiltonian, restricted, name, alpha=alpha
     )
+    iDEA.utilities.write_log("[EXIT]     methods.hybrid.propagate")
+    return evolution

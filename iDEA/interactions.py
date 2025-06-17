@@ -2,6 +2,7 @@
 
 
 import numpy as np
+import iDEA.utilities
 
 
 __all__ = [
@@ -27,10 +28,12 @@ def softened_interaction(
     | Returns:
     |     v_int: np.ndarray, Softened interaction potential on x grid of the System.
     """
+    iDEA.utilities.write_log("[ENTER]    interactions.softened_interaction")
     v_int = np.zeros((x.shape[0], x.shape[0]), dtype="float")
     for i in range(x.shape[0]):
         for j in range(x.shape[0]):
             v_int[i, j] = strength / (abs(x[i] - x[j]) + softening)
+    iDEA.utilities.write_log("[EXIT]    interactions.softened_interaction")
     return v_int
 
 
@@ -50,8 +53,10 @@ def softened_interaction_alternative(
     | Returns:
     |     v_int: np.ndarray, Softened interaction potential on x grid of the System.
     """
+    iDEA.utilities.write_log("[ENTER]    interactions.softened_interaction_alternative")
     v_int = np.zeros((x.shape[0], x.shape[0]), dtype="float")
     for i in range(x.shape[0]):
         for j in range(x.shape[0]):
             v_int[i, j] = strength / np.sqrt(((x[i] - x[j]) ** 2 + softening))
+    iDEA.utilities.write_log("[EXIT]    interactions.softened_interaction_alternative")
     return v_int

@@ -7,6 +7,7 @@ import iDEA.system
 import iDEA.state
 import iDEA.methods.non_interacting
 import iDEA.methods.interacting
+import iDEA.utilities
 
 
 def observable(
@@ -31,6 +32,8 @@ def observable(
     | Returns:
     |     observable: float or np.ndarray, Observable.
     """
+    iDEA.utilities.write_log("[ENTER]    observables.observable")
+    O = None
     if state is not None and type(state) == iDEA.state.ManyBodyState:
         raise NotImplementedError()
 
@@ -56,10 +59,10 @@ def observable(
                 * s.dx
             )
         O = up_O + down_O
-        if return_spins:
-            return O, up_O, down_O
-        else:
-            return O
+        #if return_spins:
+        #    return O, up_O, down_O
+        #else:
+        #    return O
 
     if evolution is not None and type(evolution) == iDEA.state.ManyBodyEvolution:
         raise NotImplementedError()
@@ -90,11 +93,19 @@ def observable(
                     * s.dx
                 )
         O = up_O + down_O
+        O = O.real
+        up_O = up_O.real
+        down_O = down_O.real
+        #if return_spins:
+        #    return O.real, up_O.real, down_O.real
+        #else:
+        #    return O.real
+    if O is not None:
+        iDEA.utilities.write_log("[EXIT]     observables.observable")
         if return_spins:
-            return O.real, up_O.real, down_O.real
+            return O, up_O, down_O
         else:
-            return O.real
-
+            return O
     else:
         raise AttributeError(f"State or Evolution must be provided.")
 
@@ -121,6 +132,8 @@ def density(
     | Returns:
     |     n: np.ndarray, Charge density, or evolution of charge density.
     """
+    iDEA.utilities.write_log("[ENTER]    observables.density")
+    n = None
     if state is not None and type(state) == iDEA.state.ManyBodyState:
         spin_densities = np.zeros(shape=(s.x.shape[0], 2))
         for i in range(s.x.shape[0]):
@@ -133,10 +146,10 @@ def density(
         up_n = spin_densities[:, 0]
         down_n = spin_densities[:, 1]
         n = up_n + down_n
-        if return_spins:
-            return n, up_n, down_n
-        else:
-            return n
+        #if return_spins:
+        #    return n, up_n, down_n
+        #else:
+        #    return n
 
     if state is not None and type(state) == iDEA.state.SingleBodyState:
         up_n = np.zeros(shape=s.x.shape[0])
@@ -146,10 +159,10 @@ def density(
         for i in range(state.down.orbitals.shape[1]):
             down_n += abs(state.down.orbitals[:, i]) ** 2 * state.down.occupations[i]
         n = up_n + down_n
-        if return_spins:
-            return n, up_n, down_n
-        else:
-            return n
+        #if return_spins:
+        #    return n, up_n, down_n
+        #else:
+        #    return n
 
     if evolution is not None and type(evolution) == iDEA.state.ManyBodyEvolution:
         if time_indices is None:
@@ -188,10 +201,10 @@ def density(
         up_n = spin_densities[:, :, 0]
         down_n = spin_densities[:, :, 1]
         n = up_n + down_n
-        if return_spins:
-            return n, up_n, down_n
-        else:
-            return n
+        #if return_spins:
+        #    return n, up_n, down_n
+        #else:
+        #    return n
 
     if evolution is not None and type(evolution) == iDEA.state.SingleBodyEvolution:
         if time_indices is None:
@@ -211,6 +224,12 @@ def density(
                     * evolution.down.occupations[I]
                 )
         n = up_n + down_n
+        #if return_spins:
+        #    return n, up_n, down_n
+        #else:
+        #    return n
+    if n is not None:
+        iDEA.utilities.write_log("[EXIT]     observables.density")
         if return_spins:
             return n, up_n, down_n
         else:
@@ -242,6 +261,8 @@ def density_matrix(
     | Returns:
     |     p: np.ndarray, Charge density matrix, or evolution of charge density matrix.
     """
+    iDEA.utilities.write_log("[ENTER]    observables.density_matrix")
+    p = None
     if state is not None and type(state) == iDEA.state.ManyBodyState:
         tosum = list(range(2, s.count * 2))
         spin_p = (
@@ -254,10 +275,10 @@ def density_matrix(
         up_p = spin_p[:, :, 0]
         down_p = spin_p[:, :, 1]
         p = up_p + down_p
-        if return_spins:
-            return p, up_p, down_p
-        else:
-            return p
+        #if return_spins:
+        #    return p, up_p, down_p
+        #else:
+        #    return p
 
     if state is not None and type(state) == iDEA.state.SingleBodyState:
         up_p = np.zeros(shape=s.x.shape * 2)
@@ -277,10 +298,10 @@ def density_matrix(
                 * state.down.occupations[i]
             )
         p = up_p + down_p
-        if return_spins:
-            return p, up_p, down_p
-        else:
-            return p
+        #if return_spins:
+        #    return p, up_p, down_p
+        #else:
+        #    return p
 
     if evolution is not None and type(evolution) == iDEA.state.ManyBodyEvolution:
         if time_indices is None:
@@ -322,10 +343,10 @@ def density_matrix(
         up_p = spin_density_matrices[:, :, :, 0]
         down_p = spin_density_matrices[:, :, :, 1]
         p = up_p + down_p
-        if return_spins:
-            return p, up_p, down_p
-        else:
-            return p
+        #if return_spins:
+        #    return p, up_p, down_p
+        #else:
+        #    return p
 
     if evolution is not None and type(evolution) == iDEA.state.SingleBodyEvolution:
         if time_indices is None:
@@ -357,6 +378,12 @@ def density_matrix(
                     * evolution.down.occupations[I]
                 )
         p = up_p + down_p
+        #if return_spins:
+        #    return p, up_p, down_p
+        #else:
+        #    return p
+    if p is not None:
+        iDEA.utilities.write_log("[EXIT]     observables.density_matrix")
         if return_spins:
             return p, up_p, down_p
         else:
@@ -382,22 +409,27 @@ def kinetic_energy(
     | Returns:
     |     E_k: float or np.ndarray, Kinetic energy, or evolution of kinetic energy.
     """
+    k_e = None
+    iDEA.utilities.write_log("[ENTER]    observables.kinetic_energy")
     if state is not None and type(state) == iDEA.state.ManyBodyState:
         K = iDEA.methods.interacting.kinetic_energy_operator(s)
-        return observable(s, K, state=state)
+        k_e = observable(s, K, state=state)
 
-    if state is not None and type(state) == iDEA.state.SingleBodyState:
+    elif state is not None and type(state) == iDEA.state.SingleBodyState:
         K = iDEA.methods.non_interacting.kinetic_energy_operator(s)
-        return observable(s, K, state=state)
+        k_e = observable(s, K, state=state)
 
     if evolution is not None and type(evolution) == iDEA.state.ManyBodyEvolution:
         K = iDEA.methods.interacting.kinetic_energy_operator(s)
-        return observable(s, K, evolution=evolution)
+        k_e = observable(s, K, evolution=evolution)
 
-    if evolution is not None and type(evolution) == iDEA.state.SingleBodyEvolution:
+    elif evolution is not None and type(evolution) == iDEA.state.SingleBodyEvolution:
         K = iDEA.methods.non_interacting.kinetic_energy_operator(s)
-        return observable(s, K, evolution=evolution)
+        k_e = observable(s, K, evolution=evolution)
 
+    if k_e is not None:
+        iDEA.utilities.write_log("[EXIT]     observables.kinetic_energy")
+        return k_e
     else:
         raise AttributeError(f"State or Evolution must be provided.")
 
@@ -412,6 +444,8 @@ def external_potential(s: iDEA.system.System) -> np.ndarray:
     | Returns:
     |     v_ext: np.ndarray, External potential of the system.
     """
+    iDEA.utilities.write_log("[ENTER]    observables.external_potential")
+    iDEA.utilities.write_log("[EXIT]     observables.external_potential")
     return s.v_ext
 
 
@@ -429,14 +463,17 @@ def external_energy(
     Returns:
     |     E_ext: float or np.ndarray, External energy, or evolution of external energy.
     """
+    iDEA.utilities.write_log("[ENTER]    observables.external_energy")
     if len(n.shape) == 1:
         E_ext = np.dot(n, v_ext) * s.dx
+        iDEA.utilities.write_log("[EXIT]     observables.external_energy")
         return E_ext
 
     elif len(n.shape) == 2:
         E_ext = np.zeros(shape=n.shape[0])
         for j in range(E_ext.shape[0]):
             E_ext[j] = np.dot(n[j, :], v_ext[:]) * s.dx
+        iDEA.utilities.write_log("[EXIT]     observables.external_energy")
         return E_ext
 
     else:
@@ -454,14 +491,17 @@ def hartree_potential(s: iDEA.system.System, n: np.ndarray) -> np.ndarray:
     | Returns:
     |     v_h: np.ndarray, Hartree potential, or evolution of Hartree potential.
     """
+    iDEA.utilities.write_log("[ENTER]    observables.hartree_potential")
     if len(n.shape) == 1:
         v_h = np.dot(n, s.v_int) * s.dx
+        iDEA.utilities.write_log("[EXIT]     observables.hartree_potential")
         return v_h
 
     elif len(n.shape) == 2:
         v_h = np.zeros_like(n)
         for j in range(v_h.shape[0]):
             v_h[j, :] = np.dot(n[j, :], s.v_int[:, :]) * s.dx
+        iDEA.utilities.write_log("[EXIT]     observables.hartree_potential")
         return v_h
 
     else:
@@ -483,14 +523,17 @@ def hartree_energy(
     | Returns:
     |     E_h: float or np.ndarray, Hartree energy, or evolution of Hartree energy.
     """
+    iDEA.utilities.write_log("[ENTER]    observables.hartree_energy")
     if len(n.shape) == 1:
         E_h = 0.5 * np.dot(n, v_h) * s.dx
+        iDEA.utilities.write_log("[EXIT]     observables.hartree_energy")
         return E_h
 
     elif len(n.shape) == 2:
         E_h = np.zeros(shape=n.shape[0])
         for j in range(E_h.shape[0]):
             E_h[j] = 0.5 * np.dot(n[j, :], v_h[j, :]) * s.dx
+            iDEA.utilities.write_log("[EXIT]     observables.hartree_energy")
         return E_h
 
     else:
@@ -508,14 +551,17 @@ def exchange_potential(s: iDEA.system.System, p: np.ndarray) -> np.ndarray:
     | Returns:
     |     v_x: np.ndarray, Exchange potential, or evolution of exchange potential.
     """
+    iDEA.utilities.write_log("[ENTER]    observables.exchange_potential")
     if len(p.shape) == 2:
         v_x = -p * s.v_int
+        iDEA.utilities.write_log("[EXIT]     observables.exchange_potential")
         return v_x
 
     elif len(p.shape) == 3:
         v_x = np.zeros_like(p)
         for j in range(v_x.shape[0]):
             v_x[j, :, :] = -p[j, :, :] * s.v_int[:, :]
+        iDEA.utilities.write_log("[EXIT]     observables.exchange_potential")
         return v_x
 
     else:
@@ -536,8 +582,10 @@ def exchange_energy(
     | Returns:
     |     E_x: float or np.ndarray, Exchange energy, or evolution of exchange energy.
     """
+    iDEA.utilities.write_log("[ENTER]    observables.exchange_energy")
     if len(p.shape) == 2:
         E_x = 0.5 * np.tensordot(p, v_x, axes=2) * s.dx * s.dx
+        iDEA.utilities.write_log("[EXIT]     observables.exchange_energy")
         return E_x
 
     elif len(p.shape) == 3:
@@ -546,6 +594,7 @@ def exchange_energy(
             E_x[j] = (
                 0.5 * np.tensordot(p[j, :, :].T, v_x[j, :, :], axes=2) * s.dx * s.dx
             )
+        iDEA.utilities.write_log("[EXIT]     observables.exchange_energy")
         return E_x.real
 
     else:
@@ -565,6 +614,8 @@ def single_particle_energy(
     | Returns:
     |     E: float, Single particle energy.
     """
+    iDEA.utilities.write_log("[ENTER]    observables.single_particle_energy")
+    iDEA.utilities.write_log("[EXIT]     observables.single_particle_energy")
     return np.sum(state.up.energies[:] * state.up.occupations[:]) + np.sum(
         state.down.energies[:] * state.down.occupations[:]
     )

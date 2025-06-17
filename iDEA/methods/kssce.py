@@ -17,6 +17,7 @@ import iDEA.system
 import iDEA.state
 import iDEA.observables
 import iDEA.methods.non_interacting
+import iDEA.utilities
 from typing import Callable, Dict
 from functools import partial
 
@@ -48,9 +49,10 @@ def interpolate_n(x: np.ndarray, n: np.ndarray, interp: str = "cubic") -> PPoly:
     | Returns:
     |     n(x): PPoly, Interpolant of n(x).
     """
-
+    iDEA.utilities.write_log("[ENTER]    methods.kssce.interpolate_n")
     if interp == "cubic":
         # Cubic spline interpolation
+        iDEA.utilities.write_log("[EXIT]     methods.kssce.interpolate_n")
         return scipy.interpolate.CubicSpline(
             x,
             n,
@@ -58,9 +60,11 @@ def interpolate_n(x: np.ndarray, n: np.ndarray, interp: str = "cubic") -> PPoly:
         )
     elif interp == "akima":
         # Akima interpolation
+        iDEA.utilities.write_log("[EXIT]     methods.kssce.interpolate_n")
         return scipy.interpolate.Akima1DInterpolator(x, n)
     elif interp == "pchip":
         # Piecewise cubic Hermite interpolation
+        iDEA.utilities.write_log("[EXIT]     methods.kssce.interpolate_n")
         return scipy.interpolate.PchipInterpolator(x, n)
     else:
         raise ValueError("Interpolation method not recognized.")
@@ -86,9 +90,10 @@ def interpolate_invNe(
     | Returns:
     |     invNe: PPoly, gives x(Ne).
     """
-
+    iDEA.utilities.write_log("[ENTER]    methods.kssce.interpolate_invNe")
     if interp == "hermite_cubic":
         # Hermite cubic spline interpolation with derivative
+        iDEA.utilities.write_log("[EXIT]     methods.kssce.interpolate_invNe")
         return scipy.interpolate.CubicHermiteSpline(
             Ne,
             x,
@@ -96,6 +101,7 @@ def interpolate_invNe(
         )
     elif interp == "cubic":
         # Cubic spline interpolation
+        iDEA.utilities.write_log("[EXIT]     methods.kssce.interpolate_invNe")
         return scipy.interpolate.CubicSpline(
             Ne,
             x,
@@ -103,12 +109,14 @@ def interpolate_invNe(
         )
     elif interp == "akima":
         # Akima interpolation
+        iDEA.utilities.write_log("[EXIT]     methods.kssce.interpolate_invNe")
         return scipy.interpolate.Akima1DInterpolator(
             Ne,
             x,
         )
     elif interp == "pchip":
         # Piecewise cubic Hermite interpolation
+        iDEA.utilities.write_log("[EXIT]     methods.kssce.interpolate_invNe")
         return scipy.interpolate.PchipInterpolator(
             Ne,
             x,
@@ -130,11 +138,12 @@ def compute_comotion_functions(
     | Returns:
     |     f: np.ndarray, Co-motion functions.
     """
-
+    iDEA.utilities.write_log("[ENTER]    methods.kssce.compute_comotion_function")
     # Interpolate inverse of the cumulant
     invNe_interp = interpolate_invNe(n, Ne, x, interp=interp)
     # Electron indices
     i = np.arange(1, N + 1)
+    iDEA.utilities.write_log("[EXIT]     methods.kssce.compute_comotion_function")
     return invNe_interp(
         Ne[None, :]
         + i[:, None]
@@ -164,7 +173,9 @@ def sce_potential_operator(
     | Returns:
     |     V_SCE: np.ndarray, SCE potential energy operator.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.kssce.sce_potential_operator")
     if np.isclose(np.sum(n), 0):
+        iDEA.utilities.write_log("[EXIT]     methods.kssce.sce_potential_operator")
         return np.zeros(s.x.shape)
     else:
         # Interpolate the charge density
@@ -225,6 +236,7 @@ def sce_potential_operator(
 
         # Fix the arbitrary potential in v_sce by demanding E_sce = int v_sce(x) n(x) dx
         v_sce = v_sce + E_sce / s.count * s.dx - np.sum(v_sce * n) / s.count * s.dx
+        iDEA.utilities.write_log("[EXIT]     methods.kssce.sce_potential_operator")
         return np.diag(v_sce)
 
 
@@ -243,7 +255,7 @@ def sce_energy(
     | Returns:
     |     E: float, SCE energy.
     """
-
+    iDEA.utilities.write_log("[ENTER]    methods.kssce.sce_energy")
     # Interpolate the charge density and integrate to get the cumulant Ne(x)
     Ne = interpolate_n(s.x, n, method_params["interp_n"]).antiderivative()(s.x)
 
@@ -254,13 +266,17 @@ def sce_energy(
 
     # Compute the interaction between the first electron and the rest
     w = s.interaction(np.abs(s.x - f[1:]))
-    return (
+
+    interp = (
         1
         / 2
         * interpolate_n(
             s.x, n * np.sum(w, axis=0), method_params["interp_n"]
         ).integrate(s.x[0], s.x[-1])
     )
+
+    iDEA.utilities.write_log("[EXIT]     methods.kssce.sce_energy")
+    return interp
 
 
 def hamiltonian(
@@ -288,12 +304,14 @@ def hamiltonian(
     | Returns:
     |     H: np.ndarray, Hamiltonian, up Hamiltonian, down Hamiltonian.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.kssce.hamiltonian")
     if K is None:
         K = kinetic_energy_operator(s)
     if Vext is None:
         Vext = external_potential_operator(s)
     Vsce = sce_potential_operator(s, up_n + down_n, method_params)
     H = K + Vext + Vsce
+    iDEA.utilities.write_log("[EXIT]     methods.kssce.hamiltonian")
     return H, H, H
 
 
@@ -312,9 +330,11 @@ def total_energy(
     | Returns:
     |     E: float, Total energy.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.kssce.total_energy")
     E = iDEA.observables.single_particle_energy(s, state)
     n = iDEA.observables.density(s, state)
     E += sce_energy(s, n, method_params)
+    iDEA.utilities.write_log("[EXIT]     methods.kssce.total_energy")
     return E
 
 
@@ -343,7 +363,8 @@ def solve(
     | Returns:
     |     state: iDEA.state.SingleBodyState, Solved state.
     """
-    return solve_ni(
+    iDEA.utilities.write_log("[ENTER]    methods.kssce.solve")
+    state = solve_ni(
         s,
         partial(hamiltonian, method_params=method_params),
         k,
@@ -354,6 +375,8 @@ def solve(
         name,
         silent,
     )
+    iDEA.utilities.write_log("[EXIT]     methods.kssce.solve")
+    return state
 
 
 def propagate(
@@ -377,7 +400,8 @@ def propagate(
     | Returns:
     |     evolution: iDEA.state.SingleBodyEvolution, Solved time-dependent evolution.
     """
-    return propagate_ni(
+    iDEA.utilities.write_log("[ENTER]    methods.kssce.propagate")
+    evolution = propagate_ni(
         s,
         state,
         v_ptrb,
@@ -386,3 +410,5 @@ def propagate(
         restricted,
         name,
     )
+    iDEA.utilities.write_log("[EXIT]     methods.kssce.propagate")
+    return evolution

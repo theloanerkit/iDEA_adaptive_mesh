@@ -13,12 +13,13 @@ import scipy.sparse.linalg as spsla
 import iDEA.system
 import iDEA.state
 import iDEA.observables
+import iDEA.utilities
 
 
 name = "non_interacting"
 
 
-def kinetic_energy_operator(s: iDEA.system.System) -> np.ndarray:
+def kinetic_energy_operator(s: iDEA.system.System,tracker=False) -> np.ndarray:
     r"""
     Compute single-particle kinetic energy operator as a matrix.
 
@@ -31,6 +32,9 @@ def kinetic_energy_operator(s: iDEA.system.System) -> np.ndarray:
     | Returns:
     |     K: np.ndarray, Kintetic energy operator.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.non_interacting.kinetic_energy_operator")
+    if tracker:
+        print("[in methods.non_interacting.kinetic_energy_operator]")
     if s.stencil == 3:
         sd = 1.0 * np.array([1, -2, 1], dtype=float) / s.dx**2
         sdi = (-1, 0, 1)
@@ -101,10 +105,11 @@ def kinetic_energy_operator(s: iDEA.system.System) -> np.ndarray:
             k=sdi[i],
         )
     K = -0.5 * second_derivative
+    iDEA.utilities.write_log("[EXIT]     methods.non_interacting.kinetic_energy_operator")
     return K
 
 
-def external_potential_operator(s: iDEA.system.System) -> np.ndarray:
+def external_potential_operator(s: iDEA.system.System,tracker=False) -> np.ndarray:
     r"""
     Compute the external potential operator.
 
@@ -114,7 +119,11 @@ def external_potential_operator(s: iDEA.system.System) -> np.ndarray:
     | Returns:
     |     Vext: np.ndarray, External potential energy operator.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.non_interacting.external_potential_operator")
+    if tracker:
+        print("[in methods.non_interacting.external_potential_operator]")
     Vext = np.diag(s.v_ext)
+    iDEA.utilities.write_log("[EXIT]     methods.non_interacting.external_potential_operator")
     return Vext
 
 
@@ -126,6 +135,7 @@ def hamiltonian(
     down_p: np.ndarray = None,
     K: np.ndarray = None,
     Vext: np.ndarray = None,
+    tracker=False
 ) -> np.ndarray:
     r"""
     Compute the Hamiltonian from the kinetic and potential terms.
@@ -142,15 +152,19 @@ def hamiltonian(
     | Returns:
     |     H: np.ndarray, Hamiltonian, up Hamiltonian, down Hamiltonian.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.non_interacting.hamiltonian")
+    if tracker:
+        print("[in methods.non_interacting.hamiltonian]")
     if K is None:
-        K = kinetic_energy_operator(s)
+        K = kinetic_energy_operator(s,tracker)
     if Vext is None:
-        Vext = external_potential_operator(s)
+        Vext = external_potential_operator(s,tracker)
     H = K + Vext
+    iDEA.utilities.write_log("[EXIT]     methods.non_interacting.hamiltonian")
     return H, H, H
 
 
-def total_energy(s: iDEA.system.System, state: iDEA.state.SingleBodyState) -> float:
+def total_energy(s: iDEA.system.System, state: iDEA.state.SingleBodyState,tracker=False) -> float:
     r"""
     Compute the total energy of a non_interacting state.
 
@@ -161,11 +175,16 @@ def total_energy(s: iDEA.system.System, state: iDEA.state.SingleBodyState) -> fl
     | Returns:
     |     E: float, Total energy.
     """
-    return iDEA.observables.single_particle_energy(s, state)
+    iDEA.utilities.write_log("[ENTER]    methods.non_interacting.total_energy")
+    if tracker:
+        print("[in methods.non_interacting.total_energy]")
+    energy = iDEA.observables.single_particle_energy(s, state)
+    iDEA.utilities.write_log("[EXIT]     methods.non_interacting.total_energy")
+    return energy
 
 
 def add_occupations(
-    s: iDEA.system.System, state: iDEA.state.SingleBodyState, k: int
+    s: iDEA.system.System, state: iDEA.state.SingleBodyState, k: int,tracker=False
 ) -> iDEA.state.SingleBodyState:
     r"""
     Calculate the occpuations of a state in a given energy excitation.
@@ -178,6 +197,9 @@ def add_occupations(
     | Returns:
     |     state: iDEA.state.SingleBodyState, State with occupations added.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.non_interacting.add_occupation")
+    if tracker:
+        print("[in methods.non_interacting.add_occupation]")
     # Calculate the max level or orbitals needed to achieve required state and only use these.
     max_level = max(s.up_count,s.down_count) + k
     up_energies = state.up.energies[:max_level]
@@ -221,7 +243,7 @@ def add_occupations(
     state.down.occupations = np.zeros(shape=state_copy.down.energies.shape)
     state.down.occupations[:max_level] = occupations[energy_index][1]
     state.down.occupied = np.nonzero(state.down.occupations)[0]
-
+    iDEA.utilities.write_log("[EXIT]     methods.non_interacting.add_occupation")
     return state
 
 
@@ -230,6 +252,7 @@ def sc_step(
     state: iDEA.state.SingleBodyState,
     up_H: np.ndarray,
     down_H: np.ndarray,
+    tracker=False
 ):
     r"""
     Performs a single step of the self-consistent cycle.
@@ -243,6 +266,9 @@ def sc_step(
     | Returns:
     |     state: iDEA.state.SingleBodyState, New state.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.non_interacting.sc_step")
+    if tracker:
+        print("[in methods.non_interacting.sc_step]")
     # Solve the non-interacting Schrodinger equation.
     state.up.energies, state.up.orbitals = spla.eigh(up_H)
     state.down.energies, state.down.orbitals = spla.eigh(down_H)
@@ -250,7 +276,7 @@ def sc_step(
     # Normalise orbitals.
     state.up.orbitals = state.up.orbitals / np.sqrt(s.dx)
     state.down.orbitals = state.down.orbitals / np.sqrt(s.dx)
-
+    iDEA.utilities.write_log("[EXIT]     methods.non_interacting.sc_step")
     return state
 
 
@@ -264,6 +290,7 @@ def solve(
     initial: tuple = None,
     name: str = "non_interacting",
     silent: bool = False,
+    tracker=False,
     **kwargs
 ) -> iDEA.state.SingleBodyState:
     r"""
@@ -284,6 +311,9 @@ def solve(
     | Returns:
     |     state: iDEA.state.SingleBodyState, Solved state.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.non_interacting.solve")
+    if tracker:
+        print("[in methods.non_interacting.solve]")
     # Construct the single-body state.
     state = iDEA.state.SingleBodyState()
     state.up.occupations = np.zeros(shape=s.x.shape)
@@ -313,10 +343,10 @@ def solve(
 
     # Construct the initial Hamiltonian. (And break the symmetry.)
     H_old, up_H_old, down_H_old = hamiltonian_function(
-        s, up_n_old, down_n_old, up_p_old, down_p_old, **kwargs
+        s, up_n_old, down_n_old, up_p_old, down_p_old, tracker=tracker,**kwargs
     )
     H, up_H, down_H = hamiltonian_function(
-        s, up_n_old, down_n_old, up_p_old, down_p_old, **kwargs
+        s, up_n_old, down_n_old, up_p_old, down_p_old, tracker=tracker,**kwargs
     )
     down_H += sps.spdiags(
         1e-12 * s.x, np.array([0]), s.x.shape[0], s.x.shape[0]
@@ -351,7 +381,7 @@ def solve(
             down_p = mixing * down_p + (1.0 - mixing) * down_p_old
 
         # Construct the new Hamiltonian.
-        H, up_H, down_H = hamiltonian_function(s, up_n, down_n, up_p, down_p, **kwargs)
+        H, up_H, down_H = hamiltonian_function(s, up_n, down_n, up_p, down_p, tracker=tracker,**kwargs)
 
         # Apply restriction.
         if restricted:
@@ -382,10 +412,10 @@ def solve(
             )
 
     # Compute state occupations.
-    state = add_occupations(s, state, k)
+    state = add_occupations(s, state, k,tracker)
     if silent is False:
         print()
-
+    iDEA.utilities.write_log("[EXIT]     methods.non_interacting.solve")
     return state
 
 
@@ -397,6 +427,7 @@ def propagate_step(
     v_ptrb: np.ndarray,
     dt: float,
     restricted: bool,
+    tracker=False,
     **kwargs
 ):
     r"""
@@ -414,6 +445,9 @@ def propagate_step(
     | Returns:
     |     evolution: iDEA.state.SingleBodyEvolution, Time-dependent evolution solved at time index j from j-1.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.non_interacting.propagate_step")
+    if tracker:
+        print("[in methods.non_interacting.propagate_step]")
     n, up_n, down_n = iDEA.observables.density(
         s, evolution=evolution, time_indices=np.array([j - 1]), return_spins=True
     )
@@ -447,7 +481,7 @@ def propagate_step(
         )
         norm = npla.norm(evolution.down.td_orbitals[j, :, i]) * np.sqrt(s.dx)
         evolution.down.td_orbitals[j, :, i] /= norm
-
+    iDEA.utilities.write_log("[EXIT]     methods.non_interacting.propagate_step")
     return evolution
 
 
@@ -459,6 +493,7 @@ def propagate(
     hamiltonian_function: Callable = None,
     restricted: bool = False,
     name: str = "non_interacting",
+    tracker=False,
     **kwargs
 ) -> iDEA.state.SingleBodyEvolution:
     r"""
@@ -476,6 +511,9 @@ def propagate(
     | Returns:
     |    evolution: iDEA.state.SingleBodyEvolution, Solved time-dependent evolution.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.non_interacting.propagate")
+    if tracker:
+        print("[in methods.non_interacting.propagate]")
     # Determine the Hamiltonian function.
     if hamiltonian_function is None:
         hamiltonian_function = hamiltonian
@@ -483,7 +521,7 @@ def propagate(
     # Construct the unperturbed Hamiltonian.
     n, up_n, down_n = iDEA.observables.density(s, state=state, return_spins=True)
     p, up_p, down_p = iDEA.observables.density_matrix(s, state=state, return_spins=True)
-    H, up_H, down_H = hamiltonian_function(s, up_n, down_n, up_p, down_p, **kwargs)
+    H, up_H, down_H = hamiltonian_function(s, up_n, down_n, up_p, down_p, tracker=tracker**kwargs)
     H = sps.csc_matrix(H)
     up_H = sps.csc_matrix(up_H)
     down_H = sps.csc_matrix(down_H)
@@ -516,7 +554,7 @@ def propagate(
     ):
         if j != 0:
             evolution = propagate_step(
-                s, evolution, j, hamiltonian_function, v_ptrb, dt, restricted, **kwargs
+                s, evolution, j, hamiltonian_function, v_ptrb, dt, restricted, tracker=tracker**kwargs
             )
-
+    iDEA.utilities.write_log("[EXIT]     methods.non_interacting.propagate")
     return evolution

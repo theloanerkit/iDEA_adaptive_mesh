@@ -47,3 +47,19 @@ def load_experiment(file_name: str) -> Experiment:
     |     experiment: iDEA.utilities.Experiment, Loaded Experiment object.
     """
     return pickle.load(open(file_name, "rb"))
+
+def write_log(msg):
+    with open("iDEA.log","a") as file:
+        file.write(f"{msg}\n")
+
+def fmt_log():
+    with open("iDEA.log","r") as file:
+        lines = [line.strip() for line in file.readlines()]
+    count = 0
+    with open("iDEA.log","w") as file:
+        for line in lines:
+            if "EXIT" in line:
+                count -=1
+            file.write(f"{"  "*count}{line}\n")
+            if "ENTER" in line:
+                count += 1

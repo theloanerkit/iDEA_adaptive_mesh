@@ -8,6 +8,7 @@ import iDEA.state
 import iDEA.observables
 import iDEA.methods.non_interacting
 import iDEA.methods.hartree
+import iDEA.utilities
 
 
 name = "lda"
@@ -78,6 +79,7 @@ def exchange_correlation_potential(
     | Returns:
     |     v_xc: np.ndarray, Exchange correlation potential, or evolution of exchange correlation potential.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.lda.exchange_correlation_potential")
     if len(n.shape) == 1:
         p = HEG.vx_lda["spin_polerised"]
         q = HEG.ec_lda["spin_polerised"]
@@ -136,6 +138,7 @@ def exchange_correlation_potential(
                 )
                 v_c[j] = energy - r_s * derivative
         v_xc = v_x + v_c
+        iDEA.utilities.write_log("[EXIT]     methods.lda.exchange_correlation_potential")
         if separate == True:
             return v_xc, v_x, v_c
         else:
@@ -161,8 +164,10 @@ def exchange_correlation_potential_operator(
     | Returns:
     |     Vxc: np.ndarray, Exchange correlation potential energy operator.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.lda.exchange_correlation_potential_operator")
     v_xc = exchange_correlation_potential(s, n)
     Vxc = np.diag(v_xc)
+    iDEA.utilities.write_log("[EXIT]     methods.lda.exchange_correlation_potential_operator")
     return Vxc
 
 
@@ -190,6 +195,7 @@ def hamiltonian(
     | Returns:
     |     H: np.ndarray, Hamiltonian, up Hamiltonian, down Hamiltonian.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.lda.hamiltonian")
     if K is None:
         K = kinetic_energy_operator(s)
     if Vext is None:
@@ -197,6 +203,7 @@ def hamiltonian(
     Vh = hartree_potential_operator(s, up_n + down_n)
     Vxc = exchange_correlation_potential_operator(s, up_n + down_n)
     H = K + Vext + Vh + Vxc
+    iDEA.utilities.write_log("[EXIT]     methods.lda.hamiltonian")
     return H, H, H
 
 
@@ -214,6 +221,7 @@ def exchange_correlation_energy(
     | Returns:
     |     E_xc: np.ndarray, Exchange correlation energy, or evolution of exchange correlation energy.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.lda.exchange_correlation_energy")
     p = HEG.ex_lda["spin_polerised"]
     q = HEG.ec_lda["spin_polerised"]
     e_x = np.zeros(shape=s.x.shape[0])
@@ -241,6 +249,7 @@ def exchange_correlation_energy(
     E_xc = np.dot(e_xc, n) * s.dx
     E_x = np.dot(e_x, n) * s.dx
     E_c = np.dot(e_c, n) * s.dx
+    iDEA.utilities.write_log("[EXIT]     methods.lda.exchange_correlation_energy")
     if separate == True:
         return E_xc, E_x, E_c
     else:
@@ -258,6 +267,7 @@ def total_energy(s: iDEA.system.System, state: iDEA.state.SingleBodyState) -> fl
     | Returns:
     |     E: float, Total energy.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.lda.total_energy")
     E = iDEA.observables.single_particle_energy(s, state)
     n = iDEA.observables.density(s, state)
     v_h = iDEA.observables.hartree_potential(s, n)
@@ -265,6 +275,7 @@ def total_energy(s: iDEA.system.System, state: iDEA.state.SingleBodyState) -> fl
     v_xc = exchange_correlation_potential(s, n)
     E -= np.dot(n, v_xc) * s.dx
     E += exchange_correlation_energy(s, n)
+    iDEA.utilities.write_log("[EXIT]     methods.lda.total_energy")
     return E.real
 
 
@@ -292,9 +303,12 @@ def solve(
     | Returns:
     |     state: iDEA.state.SingleBodyState, Solved state.
     """
-    return iDEA.methods.non_interacting.solve(
+    iDEA.utilities.write_log("[ENTER]    methods.lda.solve")
+    state = iDEA.methods.non_interacting.solve(
         s, hamiltonian, k, restricted, mixing, tol, initial, name, silent
     )
+    iDEA.utilities.write_log("[EXIT]     methods.lda.solve")
+    return state
 
 
 def propagate(
@@ -319,6 +333,9 @@ def propagate(
     | Returns:
     |     evolution: iDEA.state.SingleBodyEvolution, Solved time-dependent evolution.
     """
-    return iDEA.methods.non_interacting.propagate(
+    iDEA.utilities.write_log("[ENTER]    methods.lda.propagate")
+    evolution = iDEA.methods.non_interacting.propagate(
         s, state, v_ptrb, t, hamiltonian, restricted, name
     )
+    iDEA.utilities.write_log("[EXIT]     methods.lda.propagate")
+    return evolution

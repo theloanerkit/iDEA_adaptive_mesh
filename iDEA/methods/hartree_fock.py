@@ -8,6 +8,7 @@ import iDEA.state
 import iDEA.observables
 import iDEA.methods.non_interacting
 import iDEA.methods.hartree
+import iDEA.utilities
 
 
 name = "hartree_fock"
@@ -30,8 +31,10 @@ def exchange_potential_operator(s: iDEA.system.System, p: np.ndarray) -> np.ndar
     | Returns:
     |     Vx: np.ndarray, Exchange potential energy operator.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.hartree_fock.exchange_potential_operator")
     v_x = iDEA.observables.exchange_potential(s, p)
     Vx = v_x * s.dx
+    iDEA.utilities.write_log("[EXIT]     methods.hartree_fock.exchange_potential_operator")
     return Vx
 
 
@@ -59,6 +62,7 @@ def hamiltonian(
     | Returns:
     |     H: np.ndarray, Hamiltonian, up Hamiltonian, down Hamiltonian.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.hartree_fock.hamiltonian")
     if K is None:
         K = kinetic_energy_operator(s)
     if Vext is None:
@@ -70,6 +74,7 @@ def hamiltonian(
     H = K + Vext + Vh + Vx
     up_H = K + Vext + Vh + up_Vx
     down_H = K + Vext + Vh + down_Vx
+    iDEA.utilities.write_log("[EXIT]     methods.hartree_fock.hamiltonian")
     return H, up_H, down_H
 
 
@@ -84,6 +89,7 @@ def total_energy(s: iDEA.system.System, state: iDEA.state.SingleBodyState) -> fl
     | Returns:
     |     E: float, Total energy.
     """
+    iDEA.utilities.write_log("[ENTER]    methods.hartree_fock.total_energy")
     E = iDEA.observables.single_particle_energy(s, state)
     n = iDEA.observables.density(s, state)
     v_h = iDEA.observables.hartree_potential(s, n)
@@ -93,6 +99,7 @@ def total_energy(s: iDEA.system.System, state: iDEA.state.SingleBodyState) -> fl
     down_v_x = iDEA.observables.exchange_potential(s, down_p)
     E -= iDEA.observables.exchange_energy(s, up_p, up_v_x)
     E -= iDEA.observables.exchange_energy(s, down_p, down_v_x)
+    iDEA.utilities.write_log("[EXIT]     methods.hartree_fock.total_energy")
     return E
 
 
@@ -120,10 +127,12 @@ def solve(
     | Returns:
     |     state: iDEA.state.SingleBodyState, Solved state.
     """
-    return iDEA.methods.non_interacting.solve(
+    iDEA.utilities.write_log("[ENTER]    methods.hartree_fock.solve")
+    state = iDEA.methods.non_interacting.solve(
         s, hamiltonian, k, restricted, mixing, tol, initial, name, silent
     )
-
+    iDEA.utilities.write_log("[EXIT]     methods.hartree_fock.solve")
+    return state
 
 def propagate(
     s: iDEA.system.System,
@@ -147,6 +156,9 @@ def propagate(
     | Returns:
     |     evolution: iDEA.state.SingleBodyEvolution, Solved time-dependent evolution.
     """
-    return iDEA.methods.non_interacting.propagate(
+    iDEA.utilities.write_log("[ENTER]    methods.hartree_fock.propagate")
+    evolution = iDEA.methods.non_interacting.propagate(
         s, state, v_ptrb, t, hamiltonian, restricted, name
     )
+    iDEA.utilities.write_log("[EXIT]     methods.hartree_fock.propagate")
+    return evolution

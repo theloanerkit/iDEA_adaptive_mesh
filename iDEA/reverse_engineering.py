@@ -11,6 +11,7 @@ import scipy.sparse as sps
 import iDEA.system
 import iDEA.state
 import iDEA.observables
+import iDEA.utilities
 
 
 def reverse(
@@ -46,6 +47,7 @@ def reverse(
     | Returns:
     |     s_fictitious: iDEA.system.System, fictitious system object.
     """
+    iDEA.utilities.write_log("[ENTER]    reverse_engineering.")
     s_fictitious = copy.deepcopy(s)
     if v_guess is not None:
         s_fictitious.v_ext = v_guess
@@ -80,6 +82,7 @@ def reverse(
         convergence = np.sum(abs(n - target_n)) * s.dx
     if silent is False:
         print()
+    iDEA.utilities.write_log("[EXIT]     reverse_engineering.reverse")
     return s_fictitious
 
 
@@ -111,6 +114,7 @@ def _residual(
     | Returns:
     |     residual: np.ndarray, Error in propagation to be minimised.
     """
+    iDEA.utilities.write_log("[ENTER]    reverse_engineering.")
     v_td = np.zeros_like(v_ptrb)
     v_td[j, :] = v[:]
     evolution = method.propagate_step(
@@ -123,6 +127,7 @@ def _residual(
         return_spins=False,
     )[0, :]
     residual = n - target_n
+    iDEA.utilities.write_log("[EXIT]     reverse_engineering._residual")
     return residual
 
 
@@ -156,6 +161,7 @@ def reverse_propagation(
     | Returns:
     |     evolution_fictitious, error: iDEA.system.Evolution, fictitious evolution object along with time dependent error.
     """
+    iDEA.utilities.write_log("[ENTER]    reverse_engineering.")
     # Determine the Hamiltonian function.
     hamiltonian_function = method.hamiltonian
 
@@ -266,5 +272,5 @@ def reverse_propagation(
 
             # Compute mae.
             error[j] = np.mean(np.abs(n - target_n[j, :]))
-
+    iDEA.utilities.write_log("[EXIT]     reverse_engineering.reverse_propagation")
     return evolution_fictitious, error
