@@ -43,16 +43,7 @@ def kinetic_energy_operator(s: iDEA.system.System,tracker=False) -> sps.dia_matr
     k = iDEA.methods.non_interacting.kinetic_energy_operator(s)
     k = sps.dia_matrix(k)
     I = sps.identity(s.x.shape[0], format="dia")
-    partial_operators = lambda A, B, k, n: (
-        A if i + k == n - 1 else B for i in range(n)
-    )
-    fold_partial_operators = lambda f, po: functools.reduce(
-        lambda acc, val: f(val, acc, format="dia"), po
-    )
-    generate_terms = lambda f, A, B, n: (
-        fold_partial_operators(f, partial_operators(A, B, k, n)) for k in range(n)
-    )
-    terms = generate_terms(sps.kron, k, I, s.count)
+    terms = gen_terms(k,I,s.count)
     K = sps.dia_matrix((s.x.shape[0] ** s.count,) * 2, dtype=float)
     for term in terms:
         K += term
@@ -76,16 +67,7 @@ def external_potential_operator(s: iDEA.system.System,tracker=False) -> sps.dia_
     vext = iDEA.methods.non_interacting.external_potential_operator(s)
     vext = sps.dia_matrix(vext)
     I = sps.identity(s.x.shape[0], format="dia")
-    partial_operators = lambda A, B, k, n: (
-        A if i + k == n - 1 else B for i in range(n)
-    )
-    fold_partial_operators = lambda f, po: functools.reduce(
-        lambda acc, val: f(val, acc, format="dia"), po
-    )
-    generate_terms = lambda f, A, B, n: (
-        fold_partial_operators(f, partial_operators(A, B, k, n)) for k in range(n)
-    )
-    terms = generate_terms(sps.kron, vext, I, s.count)
+    terms = gen_terms(vext,I,s.count)
     Vext = sps.dia_matrix((s.x.shape[0] ** s.count,) * 2, dtype=float)
     for term in terms:
         Vext += term
@@ -93,43 +75,51 @@ def external_potential_operator(s: iDEA.system.System,tracker=False) -> sps.dia_
     return Vext
 
 
-def par_ops(h,I,k,n_electrons):
-    print("building partial operators")
+def par_ops(op,I,k,n_electrons):
+    """construct the list of partial operators for building the full non-interacting operator for each electron
+
+    Args:
+        op (sps.dia_matrix): single particle operator
+        I (sps.dia_matrix): identity matrix
+        k (int): 
+        n_electrons (int): number of electrons
+
+    Returns:
+        list(sps.dia_matrix): list of partial operators
+    """
+    iDEA.utilities.write_log("[ENTER]    methods.interacting.par_ops")
     ops = []
     for i in range(n_electrons):
         if i+k==n_electrons-1:
-            print("H",end=" ")
-            ops.append(h)
+            ops.append(op)
         else:
-            print("I",end=" ")
             ops.append(I)
-    print()
+    iDEA.utilities.write_log("[EXIT]     methods.interacting.par_ops")
     return ops
 
-def gen_terms(h,I,n_electrons):
+def gen_terms(op,I,n_electrons):
+    """generate the terms for constructing the non-interacting operator
+    Args:
+        op (sps.dia_matrix): single particle operator
+        I (sps.dia_matrix): identity matrix
+        n_electrons (int): number of electrons
+
+    Returns:
+        list(sps.dia_matrix): list of terms for the operator
+    """
+    iDEA.utilities.write_log("[ENTER]    methods.interacting.gen_terms")
     terms = []
     for k in range(n_electrons):
-        ops = par_ops(h,I,k,n_electrons)
+        ops = par_ops(op,I,k,n_electrons)
         B = ops.pop(0)
         A = ops.pop(0)
         B = sps.kron(A,B)
         while len(ops)>0:
             A = ops.pop(0)
             B = sps.kron(A,B)
-        #term = functools.reduce(sps.kron,ops)
-        #terms.append(term)
         terms.append(B)
+    iDEA.utilities.write_log("[EXIT]     methods.interacting.gen_terms")
     return terms
-
-def printer(mat):
-    string = ""
-    for row in range(np.shape(mat)[0]):
-        for col in range(np.shape(mat)[1]):
-            num = round(mat.tocsr()[row,col],2)
-            e = 5-len(f"{num}")
-            string+=f"{num}{e*" "}"
-        string+="\n"
-    return string
 
 
 def hamiltonian(s: iDEA.system.System,tracker=False) -> sps.dia_matrix:
