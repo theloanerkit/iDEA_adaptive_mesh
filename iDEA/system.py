@@ -44,6 +44,8 @@ class System:
         self.down_count = electrons.count("d")
         self.stencil = stencil
         self.set_potentials()
+        self.v_ext_op = np.diag(self.v_ext) # non-interacting external potential operator
+        self.kinetic_op = -0.5 * self.build_second_derivative_matrix()
         self.check()
 
     def set_potentials(self):
@@ -51,6 +53,70 @@ class System:
             self.v_ext = self.v_ext(self.x)
         if callable(self.v_int):
             self.v_int = self.v_int(self.x)
+
+    def calculate_coefficients(self,points_in,derivative_order):
+        """calculates the finite difference coefficients for a list of points of arbitrary spacing
+        the point at which the derivative should be calculated should be 0 in points_in
+        the algorithm used for generating the coefficients can be found in https://www.ams.org/journals/mcom/1988-51-184/S0025-5718-1988-0935077-0/
+
+        Args:
+            points_in (list(float)): points at which the finite difference coefficients should be calculated
+            derivative_order (int): order of the derivative
+        Returns:
+            np.ndarray: list of finite difference coefficients
+        """
+        x0 = 0
+        # order the points
+        points = []
+        while len(points_in)>0:
+            p = min(points_in,key=abs)
+            points.append(p)
+            points_in = np.delete(points_in, np.where(points_in == p))
+        # set up array for storing coefficients
+        coeffs = np.zeros((derivative_order+1,len(points),len(points)))
+        coeffs[0,0,0] = 1
+        c1 = 1
+
+        # iteratively generate finite difference coefficients
+        for n in range(1,len(points)):
+            c2 = 1
+            for nu in range(0,n):
+                c3 = points[n] - points[nu]
+                c2 = c2*c3
+                for m in range(0,min([n,derivative_order])+1):
+                    if c3 != 0:
+                        coeffs[m,n,nu] = (1/c3) * ((points[n]-x0)*coeffs[m,n-1,nu]-m*coeffs[m-1,n-1,nu])
+            for m in range(0,min([n,derivative_order])+1):
+                if c2 != 0:
+                    coeffs[m,n,n] = (c1/c2) * (m*coeffs[m-1,n-1,n-1]-(points[n-1]-x0)*coeffs[m,n-1,n-1])
+            c1=c2
+        order = np.argsort(points)
+        return coeffs[derivative_order,-1,order]
+
+    def build_second_derivative_matrix(self):
+        """builds second derivative operator from finite difference coefficients
+
+        Returns:
+            np.ndarray: second derivative operator
+        """
+        matrix = np.zeros(len(self.x),len(self.x))
+        for i in range(len(self.x)):
+            # get left and right bounds for points used for finite difference calculation based on stencil
+            left = i - int((self.stencil-1)/2)
+            right = left + self.stencil
+            # if left or right are out of bounds of array
+            if left < 0:
+                left = 0
+            if right > len(self.x):
+                right = len(self.x)
+
+            # calculate finite difference coefficients
+            coeffs = self.calculate_coefficients(self.x[left:right]-self.x[i],2)
+
+            # add coefficients to matrix
+            matrix[i,left:right] = coeffs
+        return matrix
+
 
     def check(self):
         r"""Performs checks on system properties. Raises AssertionError if any check fails."""

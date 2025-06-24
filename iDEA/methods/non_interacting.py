@@ -156,9 +156,9 @@ def hamiltonian(
     if tracker:
         print("[in methods.non_interacting.hamiltonian]")
     if K is None:
-        K = kinetic_energy_operator(s,tracker)
+        K = s.kinetic_op#kinetic_energy_operator(s,tracker)
     if Vext is None:
-        Vext = external_potential_operator(s,tracker)
+        Vext = s.v_ext_op#external_potential_operator(s,tracker)
     H = K + Vext
     iDEA.utilities.write_log("[EXIT]     methods.non_interacting.hamiltonian")
     return H, H, H

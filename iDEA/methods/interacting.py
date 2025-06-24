@@ -40,7 +40,7 @@ def kinetic_energy_operator(s: iDEA.system.System,tracker=False) -> sps.dia_matr
     iDEA.utilities.write_log("[ENTER]    methods.interacting.kinetic_energy_operator")
     if tracker:
         print("[in methods.interacting.kinetic_energy_operator]")
-    k = iDEA.methods.non_interacting.kinetic_energy_operator(s)
+    k = s.kinetic_op#iDEA.methods.non_interacting.kinetic_energy_operator(s)
     k = sps.dia_matrix(k)
     I = sps.identity(s.x.shape[0], format="dia")
     terms = gen_terms(k,I,s.count)
@@ -64,7 +64,7 @@ def external_potential_operator(s: iDEA.system.System,tracker=False) -> sps.dia_
     iDEA.utilities.write_log("[ENTER]    methods.interacting.external_potential_operator")
     if tracker:
         print("[in methods.interacting.external_potential_operator]")
-    vext = iDEA.methods.non_interacting.external_potential_operator(s)
+    vext = s.v_ext_op#iDEA.methods.non_interacting.external_potential_operator(s)
     vext = sps.dia_matrix(vext)
     I = sps.identity(s.x.shape[0], format="dia")
     terms = gen_terms(vext,I,s.count)
