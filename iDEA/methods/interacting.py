@@ -93,6 +93,45 @@ def external_potential_operator(s: iDEA.system.System,tracker=False) -> sps.dia_
     return Vext
 
 
+def par_ops(h,I,k,n_electrons):
+    print("building partial operators")
+    ops = []
+    for i in range(n_electrons):
+        if i+k==n_electrons-1:
+            print("H",end=" ")
+            ops.append(h)
+        else:
+            print("I",end=" ")
+            ops.append(I)
+    print()
+    return ops
+
+def gen_terms(h,I,n_electrons):
+    terms = []
+    for k in range(n_electrons):
+        ops = par_ops(h,I,k,n_electrons)
+        B = ops.pop(0)
+        A = ops.pop(0)
+        B = sps.kron(A,B)
+        while len(ops)>0:
+            A = ops.pop(0)
+            B = sps.kron(A,B)
+        #term = functools.reduce(sps.kron,ops)
+        #terms.append(term)
+        terms.append(B)
+    return terms
+
+def printer(mat):
+    string = ""
+    for row in range(np.shape(mat)[0]):
+        for col in range(np.shape(mat)[1]):
+            num = round(mat.tocsr()[row,col],2)
+            e = 5-len(f"{num}")
+            string+=f"{num}{e*" "}"
+        string+="\n"
+    return string
+
+
 def hamiltonian(s: iDEA.system.System,tracker=False) -> sps.dia_matrix:
     r"""
     Compute the many-body Hamiltonian.
@@ -108,24 +147,12 @@ def hamiltonian(s: iDEA.system.System,tracker=False) -> sps.dia_matrix:
         print("[in methods.interacting.hamiltonian]")
     # Construct the non-interacting part of the many-body Hamiltonian
     h = iDEA.methods.non_interacting.hamiltonian(s,tracker=tracker)[0]
-    print(h)
     h = sps.dia_matrix(h)
     I = sps.identity(s.x.shape[0], format="dia")
-    partial_operators = lambda A, B, k, n: (
-        A if i + k == n - 1 else B for i in range(n)
-    )
-    fold_partial_operators = lambda f, po: functools.reduce(
-        lambda acc, val: f(val, acc, format="dia"), po
-    )
-    generate_terms = lambda f, A, B, n: (
-        fold_partial_operators(f, partial_operators(A, B, k, n)) for k in range(n)
-    )
-    print(s.count)
-    terms = generate_terms(sps.kron, h, I, s.count)
+    terms = gen_terms(h,I,s.count)
     H0 = sps.dia_matrix((s.x.shape[0] ** s.count,) * 2, dtype=float)
     for term in terms:
-        print(term)
-        H0 += term
+        H0+=term
 
     # Add the interaction part of the many-body Hamiltonian
     symbols = string.ascii_lowercase + string.ascii_uppercase
